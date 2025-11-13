@@ -2,11 +2,11 @@
 
 //Zadanie 2.
 //Napisz klasę BankAccount, która będzie symulowała konto bankowe.
-//• Zaimplementuj właściwości Saldo (publiczne, tylko do odczytu) i Wlasciciel.
-//• Dodaj metodę Wplata(decimal kwota), która pozwala na zwiększenie salda, oraz metodę
+//Zaimplementuj właściwości Saldo (publiczne, tylko do odczytu) i Wlasciciel.
+//Dodaj metodę Wplata(decimal kwota), która pozwala na zwiększenie salda, oraz metodę
 //Wyplata(decimal kwota), która sprawdzi, czy jest wystarczająca ilość środków, a następnie
 //odejmie odpowiednią kwotę.
-//• Użyj operatorów dostępu, aby zabezpieczyć saldo przed bezpośrednią modyfikacją
+//Użyj operatorów dostępu, aby zabezpieczyć saldo przed bezpośrednią modyfikacją
 
 
 namespace lab2zad2;

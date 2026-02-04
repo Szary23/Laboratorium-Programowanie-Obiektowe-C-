@@ -116,7 +116,6 @@ namespace WypozyczalniaApp.Logika
                 using (var conn = new SqlConnection(polaczenie))
                 {
                     conn.Open();
-                    // Pamiętaj, aby nazwa tabeli i kolumny (id_klienta) pasowała do Twojej bazy!
                     string sql = "DELETE FROM Klienci WHERE id_klienta=@id";
                     using (var cmd = new SqlCommand(sql, conn))
                     {

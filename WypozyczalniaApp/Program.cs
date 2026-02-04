@@ -364,10 +364,10 @@ class Program
                 while (true)
                 {
                     Console.Write("Podaj ID klienta do usunięcia: ");
-                    id = WczytajLiczbe(); // lub int.TryParse... zależy co masz w kodzie
+                    id = WczytajLiczbe();
                     if (id == -1) return;
 
-                    // Zakładam, że zmienna 'klienci' to Twoja lista pobrana wyżej
+                    
                     if (klienci.Exists(k => k.Id == id)) break;
                     else Console.WriteLine("Nie ma takiego ID. Spróbuj ponownie.");
                 }
@@ -376,7 +376,7 @@ class Program
                 string potw = Console.ReadLine();
                 if (potw != null && potw.ToUpper() == "T")
                 {
-                    // --- TO JEST KLUCZOWA ZMIANA ---
+                  
                     // Sprawdzamy, czy metoda zwróciła TRUE.
                     // Jeśli zwróciła FALSE (błąd), to NIE wchodzimy do środka i nie piszemy "Usunięto".
                     if (baza.UsunKlienta(id))
@@ -489,7 +489,6 @@ class Program
                     id = WczytajLiczbe();
                     if (id == -1) return;
 
-                    // Zakładam, że zmienna 'sprzet' to Twoja lista pobrana wyżej
                     if (sprzet.Exists(s => s.Id == id)) break;
                     else Console.WriteLine("Błąd: Nie ma takiego ID.");
                 }
@@ -498,7 +497,8 @@ class Program
                 string potw = Console.ReadLine();
                 if (potw != null && potw.ToUpper() == "T")
                 {
-                    // --- KLUCZOWA ZMIANA ---
+                    // Usuwanie sprzętu tylko jeśli operacja w bazie się powiodła
+
                     if (baza.UsunSprzet(id))
                     {
                         Console.WriteLine("Usunięto sprzęt.");

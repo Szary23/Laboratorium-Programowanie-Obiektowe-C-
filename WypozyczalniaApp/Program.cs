@@ -11,7 +11,9 @@ class Program
 
     // Główny punkt wejścia do aplikacji.
     static void Main(string[] args)
+
     {
+        Console.Title = "Wypożyczalnia sprzętu";
         // Definiujemy opcje menu w tablicy
         string[] opcjeMenu = {
             "1. Zarządzanie KLIENTAMI",
@@ -362,21 +364,27 @@ class Program
                 while (true)
                 {
                     Console.Write("Podaj ID klienta do usunięcia: ");
-                    id = WczytajLiczbe();
+                    id = WczytajLiczbe(); // lub int.TryParse... zależy co masz w kodzie
                     if (id == -1) return;
 
+                    // Zakładam, że zmienna 'klienci' to Twoja lista pobrana wyżej
                     if (klienci.Exists(k => k.Id == id)) break;
                     else Console.WriteLine("Nie ma takiego ID. Spróbuj ponownie.");
                 }
 
-                // Dodatkowe zabezpieczenie przed przypadkowym usunięciem
                 Console.Write("Potwierdź (T/N): ");
                 string potw = Console.ReadLine();
                 if (potw != null && potw.ToUpper() == "T")
                 {
-                    baza.UsunKlienta(id);
-                    Console.WriteLine("Usunięto klienta.");
+                    // --- TO JEST KLUCZOWA ZMIANA ---
+                    // Sprawdzamy, czy metoda zwróciła TRUE.
+                    // Jeśli zwróciła FALSE (błąd), to NIE wchodzimy do środka i nie piszemy "Usunięto".
+                    if (baza.UsunKlienta(id))
+                    {
+                        Console.WriteLine("Usunięto klienta.");
+                    }
                 }
+
             }
         }
         catch (Exception ex)
@@ -481,11 +489,21 @@ class Program
                     id = WczytajLiczbe();
                     if (id == -1) return;
 
+                    // Zakładam, że zmienna 'sprzet' to Twoja lista pobrana wyżej
                     if (sprzet.Exists(s => s.Id == id)) break;
                     else Console.WriteLine("Błąd: Nie ma takiego ID.");
                 }
-                baza.UsunSprzet(id);
-                Console.WriteLine("Usunięto.");
+
+                Console.Write("Potwierdź (T/N): ");
+                string potw = Console.ReadLine();
+                if (potw != null && potw.ToUpper() == "T")
+                {
+                    // --- KLUCZOWA ZMIANA ---
+                    if (baza.UsunSprzet(id))
+                    {
+                        Console.WriteLine("Usunięto sprzęt.");
+                    }
+                }
             }
         }
         catch (Exception ex)

@@ -109,23 +109,39 @@ namespace WypozyczalniaApp.Logika
 
         // Usuwa klienta z bazy danych.
         // Zawiera obsługę wyjątków naruszenia więzów integralności (np. gdy klient ma aktywne wypożyczenia).
-        public void UsunKlienta(int id)
+        public bool UsunKlienta(int id)
         {
             try
             {
-                using var conn = new SqlConnection(polaczenie);
-                conn.Open();
-                string sql = "DELETE FROM Klienci WHERE id_klienta=@id";
-
-                using (var cmd = new SqlCommand(sql, conn))
+                using (var conn = new SqlConnection(polaczenie))
                 {
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
+                    conn.Open();
+                    // Pamiętaj, aby nazwa tabeli i kolumny (id_klienta) pasowała do Twojej bazy!
+                    string sql = "DELETE FROM Klienci WHERE id_klienta=@id";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        int rows = cmd.ExecuteNonQuery();
+                        return rows > 0; // Zwraca TRUE tylko jak usunięto
+                    }
                 }
             }
-            catch (Exception ex) { Console.WriteLine("Nie można usunąć klienta (może ma aktywne wypożyczenia?): " + ex.Message); }
-        }
+            catch (SqlException ex)
+            {
+                if (ex.Number == 547) // Błąd relacji (klient ma wypożyczenia)
+                {
+                    Console.WriteLine("\n>> BŁĄD: Nie można usunąć klienta, bo ma historię wypożyczeń.");
+                }
+                else Console.WriteLine("Błąd SQL: " + ex.Message);
 
+                return false; // Zwraca FALSE
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Błąd: " + ex.Message);
+                return false;
+            }
+        }
         // ================= SEKCJA: SPRZĘT =================
 
         // Pobiera pełną listę sprzętu dostępnego w systemie.
@@ -232,7 +248,7 @@ namespace WypozyczalniaApp.Logika
             catch (Exception ex) { Console.WriteLine("Błąd edycji sprzętu: " + ex.Message); }
         }
 
-        public void UsunSprzet(int id)
+        public bool UsunSprzet(int id)
         {
             try
             {
@@ -243,13 +259,27 @@ namespace WypozyczalniaApp.Logika
                     using (var cmd = new SqlCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
-                        cmd.ExecuteNonQuery();
+                        int rows = cmd.ExecuteNonQuery();
+                        return rows > 0;
                     }
                 }
             }
-            catch (Exception ex) { Console.WriteLine("Nie można usunąć sprzętu: " + ex.Message); }
-        }
+            catch (SqlException ex)
+            {
+                if (ex.Number == 547) // Błąd relacji (sprzęt jest w wypożyczeniach)
+                {
+                    Console.WriteLine("\n>> BŁĄD: Nie można usunąć sprzętu, bo jest w historii wypożyczeń.");
+                }
+                else Console.WriteLine("Błąd SQL: " + ex.Message);
 
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Błąd: " + ex.Message);
+                return false;
+            }
+        }
         // ================= SEKCJA: PRACOWNICY =================
 
         public List<Pracownik> PobierzPracownikow()
@@ -371,7 +401,7 @@ namespace WypozyczalniaApp.Logika
                 {
                     conn.Open();
                     string sql = @"
-                        SELECT w.id_wypozyczenia, k.nazwisko, s.nazwa, w.data_planowanego_zwrotu
+                        SELECT w.id_wypozyczenia, k.id_klienta, k.imie, k.nazwisko, s.nazwa, w.data_planowanego_zwrotu
                         FROM Wypozyczenia w
                         JOIN Klienci k ON w.id_klienta = k.id_klienta
                         JOIN Szczegoly_Wypozyczenia sw ON sw.id_wypozyczenia = w.id_wypozyczenia
@@ -384,7 +414,8 @@ namespace WypozyczalniaApp.Logika
                         while (r.Read())
                         {
                             string data = ((DateTime)r["data_planowanego_zwrotu"]).ToShortDateString();
-                            lista.Add($"ID Wypożyczenia: {r["id_wypozyczenia"]} | Klient: {r["nazwisko"]} | Sprzęt: {r["nazwa"]} | Termin: {data}");
+
+                            lista.Add($"ID Wyp: {r["id_wypozyczenia"]} | Klient: [{r["id_klienta"]}] {r["imie"]} {r["nazwisko"]} | Sprzęt: {r["nazwa"]} | Termin: {data}");
                         }
                     }
                 }
@@ -392,25 +423,50 @@ namespace WypozyczalniaApp.Logika
             catch (Exception ex) { Console.WriteLine("Błąd listy wypożyczeń: " + ex.Message); }
             return lista;
         }
+        
 
         // Obsługuje zwrot sprzętu (aktualizacja statusu w bazie).
         public void ZwrocSprzet(int idWypozyczenia)
         {
-            try
-            {
-                using var conn = new SqlConnection(polaczenie);
-                conn.Open();
-                string sql = "UPDATE Wypozyczenia SET status_zwrotu = 'Zakończone' WHERE id_wypozyczenia = @id";
-                using (var cmd = new SqlCommand(sql, conn))
-                {
-                    cmd.Parameters.AddWithValue("@id", idWypozyczenia);
-                    int rows = cmd.ExecuteNonQuery();
+           
+            string connStr = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=WypozyczalniaSport;Integrated Security=True";
 
-                    if (rows > 0) Console.WriteLine("Zwrot zaakceptowany. Status zmieniono na 'Zakończone'.");
-                    else Console.WriteLine("Nie znaleziono wypożyczenia o takim ID.");
+            using (var polaczenie = new SqlConnection(connStr))
+            {
+                polaczenie.Open();
+
+               
+                // Dodajemy warunek: AND status_zwrotu != 'Zakończone'
+                // Dzięki temu nie można oddać sprzętu, który już jest oddany.
+                string query = @"UPDATE Wypozyczenia 
+                         SET status_zwrotu = 'Zakończone', 
+                             data_zwrotu = GETDATE() 
+                         WHERE id_wypozyczenia = @Id 
+                         AND status_zwrotu != 'Zakończone'";
+
+                using (var komenda = new SqlCommand(query, polaczenie))
+                {
+                    komenda.Parameters.AddWithValue("@Id", idWypozyczenia);
+
+                    int zmienioneWiersze = komenda.ExecuteNonQuery();
+
+                    if (zmienioneWiersze > 0)
+                    {
+                        // Udało się - status był inny niż 'Zakończone'
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("\n>> SUKCES: Zwrot został zaakceptowany.");
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        // Nie udało się - albo ID nie istnieje, albo już było 'Zakończone'
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("\n>> BŁĄD: Nie można zwrócić tego wypożyczenia.");
+                        Console.WriteLine(">> (Powód: ID nie istnieje LUB sprzęt został już oddany wcześniej)");
+                        Console.ResetColor();
+                    }
                 }
             }
-            catch (Exception ex) { Console.WriteLine("Błąd zwrotu: " + ex.Message); }
         }
 
         // ================= RAPORTY =================

@@ -9,14 +9,14 @@ namespace WypozyczalniaApp.Interfejsy
         List<Klient> PobierzWszystkichKlientow();
         void DodajKlienta(Klient klient);
         void EdytujKlienta(Klient klient);
-        void UsunKlienta(int id);
+        bool UsunKlienta(int id);
 
         // --- SPRZĘT ---
         List<Sprzet> PobierzWszystkieSprzety();
         List<Sprzet> PobierzDostepnySprzet();
         void DodajSprzet(Sprzet sprzet);
         void EdytujSprzet(Sprzet sprzet);
-        void UsunSprzet(int id);
+        bool UsunSprzet(int id);
 
         // --- PRACOWNICY ---
         List<Pracownik> PobierzPracownikow();
